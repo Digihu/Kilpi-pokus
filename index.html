@@ -21,7 +21,9 @@ body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-ser
 #logo span { color: var(--muted); font-weight: 400; font-size: 12px; }
 #searchInput { flex: 1; max-width: 260px; background: var(--card); border: 1px solid var(--border2); color: var(--text); border-radius: 7px; padding: 6px 11px; font-size: 13px; outline: none; font-family: inherit; }
 #searchInput:focus { border-color: var(--accent); }
-#catFilter { background: var(--card); border: 1px solid var(--border2); color: var(--text); border-radius: 7px; padding: 6px 10px; font-size: 12px; outline: none; max-width: 190px; font-family: inherit; }
+#catFilter, #seasonFilter { background: var(--card); border: 1px solid var(--border2); color: var(--text); border-radius: 7px; padding: 6px 10px; font-size: 12px; outline: none; font-family: inherit; }
+#catFilter { max-width: 190px; }
+#seasonFilter { font-weight: bold; color: var(--accent); border-color: var(--accent); }
 #headerRight { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 #editBadge { font-size: 11px; color: var(--accent); background: rgba(200,240,74,0.1); border: 1px solid rgba(200,240,74,0.25); border-radius: 100px; padding: 2px 9px; font-weight: 600; display: none; }
 #statusMsg { font-size: 11px; color: var(--accent2); display: none; }
@@ -140,6 +142,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-ser
   <span id="logo">KILPI <span>/ editor popisků</span></span>
   <input id="searchInput" type="search" placeholder="Hledat produkt…">
   <select id="catFilter"><option value="">Všechny kategorie</option></select>
+  <select id="seasonFilter" onchange="changeSeason(this.value)"><option value="kilpi_for_sheets">S26</option><option value="ws2526">WS25-26</option></select>
   <div id="headerRight">
     <span id="editBadge">0 čeká</span>
     <span id="statusMsg"></span>
@@ -174,6 +177,7 @@ let currentLang = 'CZ';
 let currentId = null;
 let currentEditField = null;
 let scriptUrl = localStorage.getItem('kilpi_script_url') || '';
+let currentSheet = 'kilpi_for_sheets';
 let saveTimer = null;
 
 // ── CONFIG MODAL ──────────────────────────────────────────
@@ -207,6 +211,14 @@ async function testAndSave() {
 }
 
 // ── DATA LOADING ──────────────────────────────────────────
+function changeSeason(sheet) {
+  currentSheet = sheet;
+  longData = {};
+  currentId = null;
+  document.getElementById('detail').innerHTML = '<div style="color:var(--muted);padding:40px;text-align:center">Vyber produkt ze seznamu</div>';
+  loadFromSheets();
+}
+
 async function loadFromSheets() {
   if (!scriptUrl) {
     setProgress(20);
@@ -227,7 +239,7 @@ async function loadFromSheets() {
   setProgress(10);
   setLoadMsg('Načítám data ze Sheets…');
   try {
-    const r = await fetch(scriptUrl + '?action=getAll');
+    const r = await fetch(scriptUrl + '?action=getAll&sheet=' + encodeURIComponent(currentSheet));
     const d = await r.json();
     if (d.error) throw new Error(d.error);
     setProgress(70);
@@ -287,7 +299,7 @@ async function saveToSheets(modelId, field, value) {
     // Use TextEncoder for safe base64 encoding of unicode/HTML content
     const bytes = new TextEncoder().encode(value);
     const b64 = btoa(String.fromCharCode(...bytes));
-    const url = scriptUrl + '?action=updateCell&modelId=' + encodeURIComponent(modelId) + '&field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(b64);
+    const url = scriptUrl + '?action=updateCell&sheet=' + encodeURIComponent(currentSheet) + '&modelId=' + encodeURIComponent(modelId) + '&field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(b64);
     const r = await fetch(url);
     const d = await r.json();
     if (d.ok) {
