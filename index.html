@@ -198,7 +198,7 @@ async function testAndSave() {
       el.textContent = '✓ Spojení OK – ' + d.timestamp;
       scriptUrl = url;
       localStorage.setItem('kilpi_script_url', url);
-      setTimeout(() => { closeConfig(); loadFromSheets(); }, 800);
+      setTimeout(() => { closeConfig(); showStatus('✓ Backend URL uložena', '#4af0c2'); }, 800);
     } else throw new Error(d.error || 'unknown');
   } catch(e) {
     el.style.color = '#f04a8a';
@@ -208,20 +208,56 @@ async function testAndSave() {
 
 // ── DATA LOADING ──────────────────────────────────────────
 async function loadFromSheets() {
-  setProgress(20);
-  setLoadMsg('Načítám dlouhé popisky…');
+  if (!scriptUrl) {
+    setProgress(20);
+    setLoadMsg('Načítám data…');
+    try {
+      const r = await fetch('kilpi_longs.json');
+      const d = await r.json();
+      longData = d;
+      setProgress(100);
+      hideOverlay('Nastav URL backendu tlačítkem ⚙ Backend pro ukládání změn');
+      if (currentId) renderDetail(currentId);
+    } catch(e) {
+      setProgress(100);
+      hideOverlay('Nastav URL backendu tlačítkem ⚙ Backend');
+    }
+    return;
+  }
+  setProgress(10);
+  setLoadMsg('Načítám data ze Sheets…');
   try {
-    const r = await fetch('kilpi_longs.json');
+    const r = await fetch(scriptUrl + '?action=getAll');
     const d = await r.json();
-    setProgress(80);
-    longData = d;
+    if (d.error) throw new Error(d.error);
+    setProgress(70);
+    setLoadMsg('Zpracovávám data…');
+    d.products.forEach(p => {
+      const lp = LIST_DATA.find(x => x.MODEL_ID === p.MODEL_ID);
+      if (lp) {
+        Object.keys(p).filter(k => k.startsWith('short_')).forEach(k => { lp[k] = p[k]; });
+      }
+      if (!longData[p.MODEL_ID]) longData[p.MODEL_ID] = {};
+      Object.keys(p).filter(k => k.startsWith('long_')).forEach(k => {
+        longData[p.MODEL_ID][k] = p[k];
+      });
+    });
+    setProgress(100);
+    hideOverlay();
+    renderList();
+    if (currentId) renderDetail(currentId);
+    showStatus('✓ Data načtena ze Sheets', '#4af0c2');
+  } catch(e) {
+    setLoadMsg('Sheets nedostupné, načítám lokálně…');
+    try {
+      const r2 = await fetch('kilpi_longs.json');
+      const d2 = await r2.json();
+      longData = d2;
+    } catch(e2) {}
     setProgress(100);
     hideOverlay();
     if (currentId) renderDetail(currentId);
-    showStatus('✓ Data načtena', '#4af0c2');
-  } catch(e) {
-    setProgress(100);
-    hideOverlay('Chyba při načítání: ' + e.message);
+    showStatus('⚠ Sheets nedostupné – lokální data', '#f0c44a');
   }
 }
 
@@ -247,11 +283,21 @@ function hideOverlay(msg) {
 async function saveToSheets(modelId, field, value) {
   if (!scriptUrl) return;
   try {
-    const url = scriptUrl + '?action=updateCell&modelId=' + encodeURIComponent(modelId) + '&field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(value);
-    await fetch(url);
-    showStatus('✓ Uloženo do Sheets', '#4af0c2');
-    delete localEdits[modelId + '::' + field];
-    updateEditBadge();
+    // Encode value as base64 to safely transmit HTML content
+    const b64 = btoa(unescape(encodeURIComponent(value)));
+    const url = scriptUrl + '?action=updateCell&modelId=' + encodeURIComponent(modelId) + '&field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(b64);
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.ok) {
+      showStatus('✓ Uloženo do Sheets', '#4af0c2');
+      delete localEdits[modelId + '::' + field];
+      updateEditBadge();
+      // Update local data immediately
+      if (field.startsWith('long_')) { if (!longData[modelId]) longData[modelId] = {}; longData[modelId][field] = value; }
+      else if (field.startsWith('short_')) { const lp = LIST_DATA.find(x => x.MODEL_ID === modelId); if (lp) lp[field] = value; }
+    } else {
+      showStatus('⚠ Chyba: ' + (d.error || 'neznámá'), '#f04a8a');
+    }
   } catch(e) {
     showStatus('⚠ Sheets nedostupné', '#f04a8a');
   }
