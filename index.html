@@ -284,7 +284,9 @@ async function saveToSheets(modelId, field, value) {
   if (!scriptUrl) return;
   try {
     // Encode value as base64 to safely transmit HTML content
-    const b64 = btoa(unescape(encodeURIComponent(value)));
+    // Use TextEncoder for safe base64 encoding of unicode/HTML content
+    const bytes = new TextEncoder().encode(value);
+    const b64 = btoa(String.fromCharCode(...bytes));
     const url = scriptUrl + '?action=updateCell&modelId=' + encodeURIComponent(modelId) + '&field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(b64);
     const r = await fetch(url);
     const d = await r.json();
