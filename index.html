@@ -216,8 +216,10 @@ function changeSeason(sheet) {
   longData = {};
   currentId = null;
   LIST_DATA.splice(0, LIST_DATA.length);
-  const det = document.getElementById('detail');
-  if (det) det.innerHTML = '<div style="color:var(--muted);padding:40px;text-align:center">Načítám sezónu…</div>';
+  const empty = document.getElementById('emptyState');
+  if (empty) { empty.style.display = 'flex'; const d = empty.querySelectorAll('div')[1]; if(d) d.textContent = 'Načítám sezónu…'; }
+  const content = document.getElementById('prodContent');
+  if (content) content.style.display = 'none';
   const pl = document.getElementById('sidebar');
   if (pl) pl.innerHTML = '';
   loadFromSheets();
@@ -417,8 +419,10 @@ function renderList() {
 function renderDetail(modelId) {
   const p = LIST_DATA.find(x => x.MODEL_ID === modelId);
   if (!p) return;
-  document.getElementById('emptyState').style.display = 'none';
+  const emptyState = document.getElementById('emptyState');
+  if (emptyState) emptyState.style.display = 'none';
   const content = document.getElementById('prodContent');
+  if (!content) return;
   content.style.display = 'block';
 
   content.innerHTML = `
