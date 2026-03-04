@@ -31,6 +31,8 @@ body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-ser
 #configBtn:hover { border-color: var(--border2); color: var(--text); }
 #exportBtn { background: var(--accent); color: var(--bg); border: none; border-radius: 7px; padding: 5px 13px; font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: 0.04em; }
 #exportBtn:hover { opacity: 0.9; }
+#masterBtn { background: #a0c8f0; border: none; color: #1a2a3a; border-radius: 7px; padding: 5px 13px; font-size: 11px; cursor: pointer; font-family: inherit; text-decoration: none; letter-spacing: 0.04em; font-weight: 700; }
+#masterBtn:hover { background: #b8d8f8; }
 
 /* LANG BAR */
 #langBar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 6px 16px; display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; align-items: center; }
@@ -192,6 +194,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-ser
     <span id="statusMsg"></span>
     <button id="configBtn" onclick="openConfig()">⚙ Backend</button>
     <button id="exportBtn" onclick="exportCSV()">↓ Export CSV</button>
+    <a href="https://docs.google.com/spreadsheets/d/1gBjSuMQjI3Dme5lLbekR4mXKqGZHZPeYr4zia-xSqCA/edit?usp=sharing" target="_blank" id="masterBtn">👑 Master Sheet</a>
   </div>
 </div>
 
